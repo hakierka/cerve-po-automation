@@ -1,38 +1,18 @@
 ```mermaid
-flowchart LR
- subgraph Internal_Systems["🏠 FreshConnect Internal Systems"]
-        SF["Salesforce CRM\nCustomer Orders"]
-        SAP["SAP / Warehouse\nStock Levels"]
-        HIST["Historical Demand DB"]
+fflowchart LR
+ subgraph FreshConnect["FreshConnect"]
+        SF["📦 Salesforce — Customer Orders"]
+        SAP["🏭 SAP / WMS — Stock Levels"]
+        HIST["📊 Historical Demand DB"]
   end
- subgraph PO_Engine["⚙️ PO Engine / Orchestrator"]
-        FORECAST["Demand Forecasting\n+ Reorder Logic"]
-        PRICECHECK["Supplier Price Comparison"]
-        DRAFTPO["Draft PO Generator"]
-  end
- subgraph Procurement_UI["🖥️ Procurement Interface"]
-        REVIEW["Review & Approve Draft Orders"]
-  end
- subgraph Cerve_API["🌐 Cerve API Platform"]
-        PRODUCTS[/"Products Endpoint"/]
-        PRICE[/"Price Endpoint"/]
-        STOCK[/"Stock Endpoint"/]
-        ORDERS[/"Create Order Endpoint"/]
-  end
- subgraph Supplier_Systems["🚚 Supplier Systems"]
-        SUP1["Supplier 1"]
-        SUP2["Supplier 2"]
-        SUP3["Supplier 3"]
-  end
-    SF --> FORECAST
-    SAP --> FORECAST
-    HIST --> FORECAST
-    FORECAST --> PRICECHECK & STOCK
-    PRICECHECK --> DRAFTPO & PRODUCTS & PRICE
-    DRAFTPO --> REVIEW
-    REVIEW --> ORDERS
-    ORDERS --> SUP1 & SUP2 & SUP3
-    Internal_Systems --> n1["Untitled Node"]
-
-
-
+    SF -- order events --> ETL["🔁 Event Bus / ETL"]
+    SAP -- stock sync --> ETL
+    HIST -- demand data --> POEngine["⚙️ PO Engine / Orchestrator\n(forecast + price compare)"]
+    ETL --> Inventory["🧮 Inventory Service\n(canonical stock + par levels)"]
+    Inventory --> POEngine
+    POEngine -- price/stock queries --> Cerve["🌐 Cerve API"]
+    Cerve -- supplier responses --> Suppliers["🚚 Supplier Systems"]
+    POEngine --> UI["🧾 Procurement UI\n(review & approve)"]
+    UI -- approve --> POEngine
+    POEngine -- POST order --> Cerve
+    Cerve --> Suppliers
