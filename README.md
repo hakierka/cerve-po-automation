@@ -95,11 +95,11 @@ Fill in your credentials from Cerve’s developer portal.
    ```
 
 
->✅ The script will:
->Authenticate with Cerve
->Fetch sample product price
->Generate a draft order (draft=true)
->Save response JSON in docs/samples/draft_order_example.json
+> ✅ The script will:
+> - Authenticate with Cerve
+> - Fetch sample product price
+> - Generate a draft order (draft=true)
+> - Save response JSON in docs/samples/draft_order_example.json
 
 ## 🧾 Example Output
    ```
