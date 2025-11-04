@@ -1,114 +1,93 @@
-"""
-Cerve Developer Experience Assessment — Automated Purchase Order Generation
-Author: Amy Waliszewska
-Date: November 2025
-Purpose: Demonstrates integration with Cerve API for automated PO creation.
-"""
-
+# cerve_po_example.py
+# Simple example: authenticate, fetch price for a product, create a draft order.
 import os
+import time
 import requests
-from dotenv import load_dotenv
 
-# Load environment variables from .env
-load_dotenv()
-
-CERVE_BASE_URL = os.getenv("CERVE_BASE_URL", "https://api.sandbox.cerve.com")
-CERVE_AUTH_URL = f"{CERVE_BASE_URL.replace('api.', 'auth.')}/oauth/token"
+CERVE_AUTH_URL = "https://auth.cerve.com/v2/token"
+CERVE_API_BASE = "https://api.cerve.com/v2"
 CLIENT_ID = os.getenv("CERVE_CLIENT_ID")
 CLIENT_SECRET = os.getenv("CERVE_CLIENT_SECRET")
+SUPPLIER_ID = os.getenv("CERVE_SUPPLIER_ID")      # e.g. 'supplier_abc'
+CUSTOMER_ID = os.getenv("CERVE_CUSTOMER_ID")      # FreshConnect's customer id at supplier
+TIMEOUT = 10
 
-def get_access_token() -> str:
-    """Authenticate via OAuth2 and return bearer token."""
-    res = requests.post(
+def get_token():
+    """Client credentials flow. Cache token in-memory for demo."""
+    resp = requests.post(
         CERVE_AUTH_URL,
-        data={
-            "grant_type": "client_credentials",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        },
-        timeout=10,
+        data={"grant_type":"client_credentials"},
+        auth=(CLIENT_ID, CLIENT_SECRET),
+        timeout=TIMEOUT
     )
-    res.raise_for_status()
-    return res.json().get("access_token")
+    resp.raise_for_status()
+    j = resp.json()
+    return j["access_token"], time.time() + j.get("expires_in", 3000)
 
-def get_products(access_token: str, category: str = "fresh-produce") -> list:
-    """Fetch available products from Cerve API."""
-    headers = {"Authorization": f"Bearer {access_token}"}
-    res = requests.get(
-        f"{CERVE_BASE_URL}/v1/products",
-        headers=headers,
-        params={"category": category},
-        timeout=10,
-    )
-    res.raise_for_status()
-    return res.json().get("data", [])
+# simple token cache
+_TOKEN = None
+_TOKEN_EXP = 0
+def auth_header():
+    global _TOKEN, _TOKEN_EXP
+    if not _TOKEN or time.time() > (_TOKEN_EXP - 30):
+        _TOKEN, _TOKEN_EXP = get_token()
+    return {"Authorization": f"Bearer {_TOKEN}", "Content-Type": "application/json"}
 
-def create_purchase_order(access_token: str, items: list) -> dict:
-    """Create a draft Purchase Order in Cerve."""
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
+def get_price(product_id, quantity=1):
+    """Calls: GET /suppliers/{supplier_id}/customers/{customer_id}/products/{product_id}/price"""
+    url = f"{CERVE_API_BASE}/suppliers/{SUPPLIER_ID}/customers/{CUSTOMER_ID}/products/{product_id}/price"
+    params = {"quantity": quantity}
+    r = requests.get(url, headers=auth_header(), params=params, timeout=TIMEOUT)
+    if r.status_code == 404:
+        return None  # product not offered
+    r.raise_for_status()
+    return r.json()  # contains price, discount, vat_rate per spec. :contentReference[oaicite:26]{index=26}
+
+def create_draft_order(line_items, shipping_method_id, customer_order_ref="auto-1"):
+    """Calls POST /suppliers/{supplier_id}/customers/{customer_id}/orders?draft=true
+       line_items: list of {supplier_product_id, unit_of_measure, quantity}
+    """
+    url = f"{CERVE_API_BASE}/suppliers/{SUPPLIER_ID}/customers/{CUSTOMER_ID}/orders"
+    params = {"draft": "true"}
     payload = {
-        "supplier_id": "SUP1234",
-        "status": "draft",
-        "currency": "GBP",
-        "items": items,
-        "notes": "Auto-generated PO from FreshConnect integration demo",
+        "customer_order_id": customer_order_ref,
+        "line_items": line_items,
+        "shipments": [
+            {"supplier_shipping_method_id": shipping_method_id, "time": "2025-11-05T08:00:00Z"}
+        ]
     }
-    res = requests.post(
-        f"{CERVE_BASE_URL}/v1/purchase-orders",
-        headers=headers,
-        json=payload,
-        timeout=10,
-    )
-    res.raise_for_status()
-    return res.json()
+    r = requests.post(url, headers=auth_header(), params=params, json=payload, timeout=TIMEOUT)
+    if r.status_code == 409:
+        raise RuntimeError("Conflict while creating order - check duplicates")
+    r.raise_for_status()
+    return r.json()  # returns an Order object (draft totals, unavailable_line_items). :contentReference[oaicite:27]{index=27}
 
-def main():
-    print("🚀 Starting Cerve Automated PO Example...")
-    token = get_access_token()
-    print("✅ Authenticated with Cerve API.")
-
-    products = get_products(token)
-    if not products:
-        print("❌ No products found — aborting.")
-        return
-
-    po_items = [
-        {
-            "product_id": products[0]["id"],
-            "quantity": 100,
-            "unit_price": products[0]["price"],
-        }
-    ]
-    po = create_purchase_order(token, po_items)
-    print("✅ Draft PO Created:")
-    print(po)
-
+# ----- Example usage -----
 if __name__ == "__main__":
-    main()
-import os
-import requests
-from dotenv import load_dotenv
+    # example placeholders
+    example_product_id = "00000000-0000-0000-0000-000000000001"
+    supplier_product_id = "APLJ-1L"
+    shipment_method = "ship_method_1"
 
-load_dotenv()
-CERVE_AUTH_URL = f"{os.getenv('CERVE_BASE_URL', 'https://api.sandbox.cerve.com').replace('api.', 'auth.')}/oauth/token"
+    try:
+        price_info = get_price(example_product_id, quantity=10)
+        if not price_info:
+            print("Product not available from this supplier.")
+        else:
+            print("Price info:", price_info)
 
-def test_auth():
-    res = requests.post(
-        CERVE_AUTH_URL,
-        data={
-            "grant_type": "client_credentials",
-            "client_id": os.getenv("CERVE_CLIENT_ID"),
-            "client_secret": os.getenv("CERVE_CLIENT_SECRET"),
-        },
-        timeout=10,
-    )
-    if res.status_code == 200:
-        print("✅ Authentication successful.")
-    else:
-        print(f"❌ Auth failed: {res.status_code} - {res.text}")
-
-if __name__ == "__main__":
-    test_auth()
+        draft = create_draft_order(
+            line_items=[{"supplier_product_id": supplier_product_id, "unit_of_measure": "each", "quantity": 10}],
+            shipping_method_id=shipment_method,
+            customer_order_ref="FC-PO-1234-DRAFT"
+        )
+        print("Draft order created:", draft.get("supplier_order_id") or draft.get("id"))
+        # Show unavailable items or totals
+        if draft.get("unavailable_line_items"):
+            print("Unavailable items:", draft["unavailable_line_items"])
+        else:
+            print("Draft total:", draft.get("total"))
+    except requests.HTTPError as e:
+        print("API error:", e, e.response.text)
+    except Exception as e:
+        print("Error:", e)
