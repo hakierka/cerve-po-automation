@@ -1,14 +1,19 @@
-# 🥦 FreshConnect x Cerve — Automated Purchase Order Integration  
+# FreshConnect x Cerve — Automated Purchase Order Integration  
 
-**Author:** Amy Waliszewska — Developer Relations (assignment demo)  
-**Use case:** Automated Purchase Order Generation using the Cerve API 
+Connecting FreshConnect’s internal systems through the Cerve API to automate purchase orders.
+A Developer Experience showcase built to demonstrate how to guide a small team through real-world API integration — from architecture to code to storytelling.
 
----
+## 🚀 The Mission
 
-## 🌍 Context
+FreshConnect Foods — a £45M Birmingham-based food distributor — was drowning in manual procurement:
 
-FreshConnect Foods is a mid-sized food service distributor struggling with manual procurement — 15+ hours/week spent creating purchase orders across 20+ suppliers.  
-The goal of this integration is to **automate PO suggestions and submissions** using the **Cerve API**, reducing admin time, improving stock accuracy, and optimizing supplier pricing.
+- 15+ hours/week spent on repetitive admin
+- Frequent stockouts and rush orders
+- No consistent price comparison across 20+ suppliers
+
+They needed a smarter, automated way to generate purchase orders — and the Cerve API became the bridge between their fragmented systems and supplier networks.
+
+This project shows how that connection could be designed, implemented, and taught to developers in a clear, scalable way.
 
 ---
 
@@ -26,99 +31,91 @@ The goal of this integration is to **automate PO suggestions and submissions** u
 
 
 ## 🏗️ System Architecture
-
+A single, connected flow — from customer demand to supplier order.
 ![Architecture](./docs/architecture_chart.png)
 > See the live diagram in [docs/architecture.md](./docs/architecture.md)
 
-### Components
-- **Salesforce CRM:** source of upcoming customer orders  
-- **SAP / Warehouse System:** live stock data  
-- **Inventory Service:** merges order + stock data into a unified model  
-- **PO Engine (Orchestrator):** forecasts demand, compares supplier prices, generates draft POs  
-- **Procurement UI:** human approval and adjustments  
-- **Cerve API:** supplier integration layer (pricing, stock, and order submission)
+## ⚙️ How It Works
+| Step | What Happens | Cerve Role |
+|:----:|---------------|------------|
+| 1️⃣ **Sync Data** | Pull stock from SAP & orders from Salesforce | — |
+| 2️⃣ **Forecast** | Predict reorders using historical demand | — |
+| 3️⃣ **Compare** | Query Cerve for product prices & stock | `GET /products`, `GET /price`, `GET /stock` |
+| 4️⃣ **Generate** | Build draft POs automatically | `POST /orders?draft=true` |
+| 5️⃣ **Approve** | Procurement reviews and confirms | — |
+| 6️⃣ **Submit** | Send approved POs to suppliers | `POST /orders` |
 
-Data flows both ways — from FreshConnect’s internal systems → through the PO Engine → to suppliers via Cerve.
+💡 *From 60 minutes per order → 8 minutes.*
 
----
+## 🧰 Project Structure
+```
+cerve-po-automation/
+├── code/
+│   ├── python/
+│   │   ├── cerve_po_integration.py      # Main demo script
+│   │   └── requirements.txt
+│   └── samples/
+│       └── sample_env.example           # Example environment config
+├── docs/
+│   ├── architecture.md
+│   ├── api-flow.md
+│   ├── architecture.png
+│   └── samples/
+│       └── draft_order_example.json     # Fake demo draft order
+├── .github/workflows/ci.yml             # Lightweight CI workflow
+└── README.md
+```
 
-## ⚙️ Cerve API Integration Overview
-
-| Step | Endpoint | Purpose |
-|------|-----------|----------|
-| 1 | `GET /suppliers/{supplier_id}/customers/{customer_id}/products` | Retrieve available products |
-| 2 | `GET /suppliers/{supplier_id}/customers/{customer_id}/products/{product_id}/price?quantity=` | Fetch unit & total price for each supplier |
-| 3 | `GET /suppliers/{supplier_id}/customers/{customer_id}/products/{product_id}/stock` | Check availability |
-| 4 | `POST /suppliers/{supplier_id}/customers/{customer_id}/orders?draft=true` | Generate draft PO for procurement review |
-| 5 | `POST /suppliers/{supplier_id}/customers/{customer_id}/orders` | Submit approved PO |
-
-**Authentication:** OAuth2 Client Credentials (token via `https://auth.cerve.com/v2/token`)  
-**Data sync model:** event-driven (new orders from Salesforce) + periodic polling (stock/price refresh)
-
----
-
-## 🧩 Implementation Notes
-
-- **Language:** Python (clean, simple for backend team)  
-- **Auth:** token cached in memory; refreshed automatically before expiry  
-- **Error handling:** graceful retries with exponential backoff; differentiates between transient (timeout, 5xx) and permanent (400/404/409) errors  
-- **Data caching:** product list cached daily; stock polled selectively for hot SKUs  
-- **Extensibility:** modular enough to plug into other CRMs or forecasting models  
-
----
-
-## 🧑‍💻 Developer Quick Start
-
-1. **Clone repo**
-   ```
-   git clone https://github.com/hakierka/cerve-po-automation.git
-   cd cerve-po-automation
-   ```
-
-2. **Set up environment**
-   ```
-   cp code/samples/sample_env.example .env
-   ```
-
-Fill in your credentials from Cerve’s developer portal.
-
-3. **Install dependencies**
-   ```
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r code/python/requirements.txt
-   ```
+## 💻 Run the Demo
+### 1. Setup environment
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r code/python/requirements.txt
+```
+### 2. Configure credentials
+```
+cp code/samples/sample_env.example .env
+# Edit with your own keys or leave placeholders
+```
+### 3. Run integration (draft mode only)
+```
+python code/python/cerve_po_integration.py
+```
+> 🧠 The script simulates:
+> - Authentication with Cerve (OAuth2)
+> - Price lookup
+> - Draft PO creation
+>   
+> ➡️ Results are saved to docs/samples/draft_order_example.json
 
 
-4. **Run demo**
-   ```
-   python code/python/cerve_po_example.py
-   ```
+## 📘 Example Output
+```
+{
+  "_note": "⚠️ Fabricated example for demonstration purposes only.",
+  "supplier_order_id": "FC-DEMO-0001",
+  "status": "draft",
+  "total": 218.50,
+  "currency": "GBP",
+  "line_items": [
+    {"supplier_product_id": "APLJ-1L", "quantity": 10, "unit_price": 20.0},
+    {"supplier_product_id": "BAN-2KG", "quantity": 5, "unit_price": 3.7}
+  ]
+}
+```
 
+## 🔗 API Endpoints Used
+## 🔗 API Endpoints Used  
 
-> ✅ The script will:
-> - Authenticate with Cerve
-> - Fetch sample product price
-> - Generate a draft order (draft=true)
-> - Save response JSON in docs/samples/draft_order_example.json
+| Purpose | Method | Endpoint |
+|----------|--------|----------|
+| **Auth** | `POST` | `/v2/token` |
+| **Products** | `GET` | `/suppliers/{supplier_id}/customers/{customer_id}/products` |
+| **Price** | `GET` | `/suppliers/{supplier_id}/customers/{customer_id}/products/{product_id}/price` |
+| **Draft Order** | `POST` | `/suppliers/{supplier_id}/customers/{customer_id}/orders?draft=true` |
+| **Submit Order** | `POST` | `/suppliers/{supplier_id}/customers/{customer_id}/orders` |
 
-## 🧾 Example Output
-   ```
-   {
-     "supplier_order_id": "FC-DEMO-1730769600",
-     "total": 218.50,
-     "currency": "GBP",
-     "line_items": [
-       {
-         "supplier_product_id": "APLJ-1L",
-         "quantity": 10,
-         "unit_price": 20.00,
-         "total_price": 200.00
-       }
-     ],
-     "status": "draft",
-     "unavailable_line_items": []
-   }
-   ```
+📄 *Full reference available in* [`docs/api-flow.md`](docs/api-flow.md)
 
 
