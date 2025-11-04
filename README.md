@@ -70,8 +70,8 @@ Data flows both ways — from FreshConnect’s internal systems → through the 
 
 1. **Clone repo**
    ```
-   git clone https://github.com/<youruser>/freshconnect-cerve-po.git
-   cd freshconnect-cerve-po
+   git clone https://github.com/hakierka/cerve-po-automation.git
+   cd cerve-po-automation
    ```
 
 2. **Set up environment**
