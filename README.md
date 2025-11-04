@@ -28,6 +28,7 @@ The goal of this integration is to **automate PO suggestions and submissions** u
 ## 🏗️ System Architecture
 
 ![Architecture](./docs/architecture.png)
+> See the live diagram in [docs/architecture.md](./docs/architecture.md)
 
 ### Components
 - **Salesforce CRM:** source of upcoming customer orders  
