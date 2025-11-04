@@ -88,3 +88,27 @@ def main():
 
 if __name__ == "__main__":
     main()
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+CERVE_AUTH_URL = f"{os.getenv('CERVE_BASE_URL', 'https://api.sandbox.cerve.com').replace('api.', 'auth.')}/oauth/token"
+
+def test_auth():
+    res = requests.post(
+        CERVE_AUTH_URL,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": os.getenv("CERVE_CLIENT_ID"),
+            "client_secret": os.getenv("CERVE_CLIENT_SECRET"),
+        },
+        timeout=10,
+    )
+    if res.status_code == 200:
+        print("✅ Authentication successful.")
+    else:
+        print(f"❌ Auth failed: {res.status_code} - {res.text}")
+
+if __name__ == "__main__":
+    test_auth()
