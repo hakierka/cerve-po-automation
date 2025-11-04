@@ -13,23 +13,32 @@ Date: November 2025
 
 ## 1️⃣ Solution Architecture Diagram
 ```mermaid
-flowchart LR
-    subgraph FreshConnect Systems
-        A[Salesforce CRM] -->|Customer Orders| B[Order Processing Service]
-        C[Warehouse Mgmt System] -->|Stock Levels| B
-        D[SAP Business One ERP] -->|Purchase History, Pricing| B
-    end
+flowchart TB
+  %% Top: FreshConnect systems
+  SF["Salesforce (Customer Orders)"]
+  WMS["Warehouse System (Stock Levels)"]
+  ERP["ERP / SAP (Product Prices & History)"]
 
-    B -->|Forecasted Demand, SKU Mapping| E[PO Generation Engine]
-    E -->|Fetch Product, Price, Availability| F[Cerve API]
-    F -->|Supplier Data| E
-    E -->|Create Draft PO| F
-    F -->|PO Confirmation + Status Webhook| E
-    E -->|Approved PO| G[Supplier Systems]
-    G -->|Order Fulfillment, Invoice| D
+  %% Processing
+  PO["PO Generator\n(ETL, Forecast, Rules)"]
 
-    style E fill:#B3E6FF,stroke:#333,stroke-width:1px
-    style F fill:#FFD580,stroke:#333,stroke-width:1px
+  %% Integration
+  CERVE["Cerve API"]
+
+  %% External
+  SUP["Suppliers"]
+  WEB["Status Updates (Webhooks)"]
+
+  %% Flows
+  SF -- Orders --> PO
+  WMS -- Stock --> PO
+  ERP -- Prices --> PO
+
+  PO -- Create & Send PO --> CERVE
+  CERVE -- Deliver Order --> SUP
+  CERVE -- PO Status / Shipment --> WEB
+  WEB -- Update --> ERP
+
 ```
 > **Figure 1:** Automated Purchase Order Generation via Cerve API — showing data flow between FreshConnect systems, Cerve, and suppliers.
 
@@ -49,6 +58,31 @@ Automate and streamline purchase order generation by connecting FreshConnect’s
 | Create Purchase Order | `POST /v1/purchase-orders` | Create draft or final PO |
 | PO Tracking | `GET /v1/purchase-orders/{id}` / Webhook | Track PO and shipment status |
 
+**Auth**
+
+- `POST /oauth/token` — OAuth2 client credentials → get access token (expires short).
+
+**Product & catalog**
+
+- `GET /v1/products?sku={sku}` — map internal SKU to Cerve product id / metadata.
+
+- `GET /v1/products` (filters/paging) — list products for supplier matching.
+
+**Pricing & availability**
+
+- `GET /v1/products/{product_id}/pricing` — supplier prices, pack sizes, lead times.
+
+- `GET /v1/products/{product_id}/availability` — stock / available qty per supplier.
+
+**Purchase orders**
+
+- `POST /v1/purchase-orders` — create draft/submit PO. Use Idempotency-Key header.
+
+- `GET /v1/purchase-orders/{id}` — fetch PO status.
+
+**Webhooks**
+
+- `POST /webhooks` (Cerve registers callback) — receive po.status, shipment.* events.
 
 ### Request/Response Flow
 
