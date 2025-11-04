@@ -1,7 +1,14 @@
 # 🧩 Automated Purchase Order Generation — Cerve API Integration
+
+> A proof-of-concept integration for **FreshConnect Foods**, demonstrating automated Purchase Order generation using the **Cerve API**.  
+> Built for the **Cerve Developer Experience Assessment (Nov 2025)**.
+
 Company: FreshConnect Foods
+
 Use Case: Automated Purchase Order Generation
+
 Candidate: Amy Waliszewska
+
 Date: November 2025
 
 ## 1️⃣ Solution Architecture Diagram
