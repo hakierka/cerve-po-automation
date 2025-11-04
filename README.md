@@ -105,7 +105,14 @@ python code/python/cerve_po_integration.py
 }
 ```
 
-## 🔗 API Endpoints Used
+### 🔐 Authentication & Error Handling
+The integration uses OAuth2 client credentials to obtain a token from `https://auth.cerve.com/v2/token`.  
+Tokens are cached in memory for performance.  
+Errors are handled gracefully:
+- 401 → refresh token and retry  
+- 404 → product not found (skipped in PO)  
+- 409 → duplicate order (conflict)
+  
 ## 🔗 API Endpoints Used  
 
 | Purpose | Method | Endpoint |
@@ -118,4 +125,13 @@ python code/python/cerve_po_integration.py
 
 📄 *Full reference available in* [`docs/api-flow.md`](docs/api-flow.md)
 
+---
+
+## 👩‍💻 Author
+
+**Amy Waliszewska**  
+Developer Relations 
+📧 [amy.waliszewska@gmail.com](mailto:amy.waliszewska@gmail.com)  
+🐙 [github.com/hakierka](https://github.com/hakierka)  
+💼 [LinkedIn](https://www.linkedin.com/in/amy-waliszewska)
 
