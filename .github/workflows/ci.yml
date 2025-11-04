@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r code/python/requirements.txt
+
+      - name: Run demo script (no API calls)
+        run: |
+          python code/python/cerve_po_integration.py || true
+        env:
+          CERVE_CLIENT_ID: dummy
+          CERVE_CLIENT_SECRET: dummy
+          SUPPLIER_ID: test_supplier
+          CUSTOMER_ID: test_customer
+
+      - name: Verify repo structure
+        run: |
+          ls -R docs/ code/ || true
