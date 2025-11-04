@@ -1,0 +1,4 @@
+🚀 Running Cerve PO demo (draft mode).
+→ Fetching price for product: 00000000-0000-0000-0000-000000000001
+Unexpected error: HTTPSConnectionPool(host='api.sandbox.cerve.com', port=443): Max retries exceeded with url: /v2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x102516e40>: Failed to resolve 'api.sandbox.cerve.com' ([Errno 8] nodename nor servname provided, or not known)"))
+✅ Demo finished.
